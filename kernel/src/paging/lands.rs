@@ -30,21 +30,19 @@ pub trait VirtualSpaceLand {
     }
 
     /// Is the region fully contained in this Land ?
-    ///
-    /// # Panics
-    ///
-    /// Panics if size is 0.
-    // TODO: Land::contains_region() should not panic on 0 length
-    // BODY: This function should return an error, as it really is likely someone (I)
-    // BODY: will call it at some point not expecting it can panic.
-    fn contains_region(start_address: VirtualAddress, size: usize) -> bool {
-        assert!(size != 0, "contains_region : size == 0");
+    fn contains_region(start_address: VirtualAddress, size: usize) -> Result<bool, KernelError> {
+        if size != 0 {
+            // assert!(size != 0, "contains_region : size == 0");
+            return Err(KernelError::InvalidMemState);
+        }
+
         let sum = start_address.addr().checked_add(size - 1);
-        if let Some(end_address) = sum {
+
+        Ok(if let Some(end_address) = sum {
             Self::contains_address(start_address) && Self::contains_address(VirtualAddress(end_address))
         } else {
             false
-        }
+        })
     }
 
     /// Checks that a given address falls in this land, or return an InvalidAddress otherwise

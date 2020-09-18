@@ -79,7 +79,11 @@ impl KernelMemory {
     /// Panics if virtual region is not in KernelLand.
     // todo check va alignment
     pub fn map_phys_region_to(&mut self, phys: PhysicalMemRegion, address: VirtualAddress, flags: MappingAccessRights) {
-        assert!(KernelLand::contains_region(address, phys.size()));
+        // assert!(KernelLand::contains_region(address, phys.size()));
+        if let Err(e) = KernelLand::contains_region(address, phys.size()) {
+            // Should I panic here?
+        }
+
         self.tables.map_to_from_iterator(phys.into_iter(), address, flags);
         // physical region must not be deallocated while it is mapped
         ::core::mem::forget(phys);
@@ -126,8 +130,12 @@ impl KernelMemory {
     pub(super) unsafe fn map_frame_iterator_to<I>(&mut self, iterator: I, address: VirtualAddress, flags: MappingAccessRights)
     where I: Iterator<Item=PhysicalAddress> + Clone
     {
-        assert!(KernelLand::contains_region(address,
-                                            iterator.clone().count() * PAGE_SIZE));
+        match KernelLand::contains_region(address, iterator.clone().count() * PAGE_SIZE) {
+            Ok(truth) => assert!(truth),
+            Err(e) => {
+                // Should I panic here?
+            }
+        }
         self.tables.map_to_from_iterator(iterator, address, flags);
     }
 

@@ -722,8 +722,14 @@ pub fn set_process_memory_permission(proc_hnd: u32, addr: usize, size: usize, pe
 
     let dstproc = scheduler::get_current_process().phandles.lock().get_handle(proc_hnd)?.as_process()?;
     // Use dstproc.addrSpace
-    if !UserLand::contains_region(addr, size) {
-        return Err(UserspaceError::InvalidMemState);
+
+    match UserLand::contains_region(addr, size) {
+        Ok(truth) => {
+            if not truth {
+                return Err(UserspaceError::InvalidMemState);
+            }
+        },
+        Err(e) => return Err(e)
     }
 
     // # KMemoryManager::SetProcessMemoryPermission
@@ -829,12 +835,12 @@ pub fn map_process_memory(dst_addr: usize, proc_hnd: u32, src_addr: usize, size:
     let srcproc = curproc.phandles.lock().get_handle(proc_hnd)?.as_process()?;
 
     // check srcproc address space
-    if !UserLand::contains_region(src_addr, size) {
+    if !UserLand::contains_region(src_addr, size)? {
         return Err(UserspaceError::InvalidMemState);
     }
 
     // If dst_addr is within Heap region or Map region, error out.
-    if !UserLand::contains_region(dst_addr, size) {
+    if !UserLand::contains_region(dst_addr, size)? {
         return Err(UserspaceError::InvalidMemRange)
     }
 
